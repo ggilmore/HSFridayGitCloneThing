@@ -3,5 +3,4 @@
  */
 object ArgParser {
 
-  println("test")
 }
