@@ -8,3 +8,5 @@ trait GenError {
 }
 
 case class FileCopyFailedException(message:String) extends GenError
+
+case class LogFileFormatException(message: String) extends

@@ -17,6 +17,7 @@ object ArgParser extends App {
   val SNAPSHOT_FOLDER_NAME = ".myvcs/"
 
   val USAGE =s"""USAGE 'snapshot' followed by the path of the folder that you want the snapshot to be placed."""
+  val LOG_FILENAME = "myvcs_log.txt"
 
   args match {
     case Array("snapshot", targetFolder) => copyAllFiles(CURRENT_RUNNING_PATH, targetFolder) match {
@@ -40,6 +41,8 @@ object ArgParser extends App {
     }
 
   }
+
+
 }
 
 
