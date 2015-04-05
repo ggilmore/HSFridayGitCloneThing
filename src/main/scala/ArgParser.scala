@@ -49,11 +49,10 @@ object ArgParser extends App {
         val logFile = new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)
         if (!logFile.exists) logFile.createNewFile
         val logLines:Seq[String] = Source.fromFile(logFile).getLines.toSeq.filter(x=>x.nonEmpty)
-        println(s"logLines $logLines")
         getLatestRepositoryEntry(logLines) match {
-          case Some(entry) => createNewSnapShot((entry.version.toInt +1).toString, "",
+          case Some(entry) => createNewSnapShot((entry.version.toInt +1).toString, message,
             CURRENT_RUNNING_PATH, targetFolder, new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME).getAbsolutePath)
-          case None => createNewSnapShot(0.toString, "",
+          case None => createNewSnapShot(0.toString, message,
             CURRENT_RUNNING_PATH, targetFolder, new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME).getAbsolutePath)
             None
         }
