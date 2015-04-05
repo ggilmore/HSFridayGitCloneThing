@@ -3,6 +3,10 @@ package Logger
 /**
  * Created by erisa on 03/04/15.
  */
+
+import java.io.File
+import java.nio.file.Path
+import java.nio.file.Path._
 object LogFileReader {
 
   def readRepositoryLine(line: String) ={

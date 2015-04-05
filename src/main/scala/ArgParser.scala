@@ -4,7 +4,8 @@
 
 
 
-import java.io.File
+import java.io.{FileFilter, File}
+import java.util
 import Errors.{BranchNotFoundException, GenError, ExistingBranchException, FileCopyFailedException}
 import Logger.LogFileReader._
 import Logger.LogFileWriter._
@@ -18,7 +19,7 @@ import scala.io.Source
 
 object ArgParser extends App {
 
-  val SNAPSHOT_FOLDER_NAME = ".myvcs/"
+  val SNAPSHOT_FOLDER_NAME = s".myvcs${File.separator}"
 
   val USAGE =s"""USAGE 'snapshot' followed by the path of the folder that you want the snapshot to be placed."""
   val LOG_FILENAME = "myvcs_log.txt"
@@ -43,9 +44,11 @@ object ArgParser extends App {
 
 
   def commit(message:String = "", branchName:String): Option[GenError] = {
-    LogFileReader.getBranchPath(Source.fromFile(CURRENT_RUNNING_PATH, BASE_LOG).getLines().toSeq.filter(line => line.nonEmpty), branchName) match {
+    LogFileReader.getBranchPath(Source.fromFile(new File(CURRENT_RUNNING_PATH, BASE_LOG)).getLines().toSeq.filter(line => line.nonEmpty), branchName) match {
       case Some(targetFolder) => {
-        val logLines = Source.fromFile(new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)).getLines.toSeq.filter(x=>x.nonEmpty)
+        val logFile = new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)
+        if (!logFile.exists) logFile.createNewFile
+        val logLines = Source.fromFile(logFile).getLines.toSeq.filter(x=>x.nonEmpty)
         getLatestRepositoryEntry(logLines) match {
           case Some(entry) => createNewSnapShot((entry.version.toInt +1).toString, "",
             CURRENT_RUNNING_PATH, targetFolder, new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME).getAbsolutePath)
@@ -61,13 +64,12 @@ object ArgParser extends App {
   private def copyAllFiles(rootPath: String, targetDirName: String, snapVersion:String): Option[GenError] = {
     try {
       val folder = new File(rootPath)
-      val target = new File(targetDirName, SNAPSHOT_FOLDER_NAME + snapVersion)
-      folder.listFiles().foreach( f => {
-         if (f.isDirectory)
-           FileUtils.copyDirectory(folder, target)
-        else if (!f.getName.equalsIgnoreCase(BASE_LOG))
-           FileUtils.copyFile(f, target)
-      })
+      val target = new File(targetDirName, SNAPSHOT_FOLDER_NAME + snapVersion + File.separator)
+      println(target.mkdir)
+      val filter = new FileFilter {
+        override def accept(pathname: File): Boolean = !pathname.getName().equalsIgnoreCase(BASE_LOG)
+      }
+      FileUtils.copyDirectory(folder, target, filter)
       None
     }
     catch {
@@ -77,7 +79,7 @@ object ArgParser extends App {
 
   }
 
-  def createNewSnapShot(newVersion:String, message:String ="", rootPath:String, targetDirName:String, logPath:String) = {
+  def createNewSnapShot(newVersion:String, message:String ="", rootPath:String, targetDirName:String, logPath:String):Option[GenError] = {
     writeToRepositoryLog(logPath, Entry(newVersion, message))
     copyAllFiles(rootPath, targetDirName, newVersion)
   }
