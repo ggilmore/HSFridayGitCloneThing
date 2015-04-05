@@ -12,11 +12,13 @@ object LogFileReader {
   def readRepositoryLine(line: String) ={
     val trimmedLine = line.trim
     val firstSpace = trimmedLine.indexOf(" ")
-    Entry(trimmedLine.substring(0, firstSpace), trimmedLine.substring(firstSpace + 1))
+    if (firstSpace == -1) Entry(trimmedLine, "")
+    else Entry(trimmedLine.substring(0, firstSpace), trimmedLine.substring(firstSpace + 1))
   }
 
   def getRepositoryEntries(lines: Seq[String]):Seq[Entry] = {
     def loop(entries:Seq[Entry], restOfLines:Seq[String]): Seq[Entry] = {
+      println(entries)
       if (restOfLines.isEmpty) entries
       else loop(entries :+ readRepositoryLine(restOfLines.head), restOfLines.tail)
     }
