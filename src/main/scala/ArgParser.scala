@@ -28,10 +28,6 @@ object ArgParser extends App {
   val HEAD_FILE = CURRENT_RUNNING_PATH + "/" + SNAPSHOT_FOLDER_NAME + "/" + "head.txt"
 
   args match {
-    case Array("create", name, location) => createBranch(name, location) match {
-      case Some(err) => println(err.message)
-      case None => println(OK)
-    }
     case Array("snapshot", branchName) => commit(branchName=branchName) match {
       case Some(err) => println(err.message)
       case None => println(OK)
@@ -132,21 +128,6 @@ object ArgParser extends App {
       }
     }
 
-  }
-
- private def createBranch(branchName: String, location: String): Option[GenError] = {
-    val baseLogPath =  CURRENT_RUNNING_PATH + "/" + BASE_LOG
-    val baseLogFile = new File(baseLogPath)
-    if (!baseLogFile.exists())
-      baseLogFile.createNewFile()
-    val lines = Source.fromFile(baseLogFile).getLines().toSeq.filter(line => line.nonEmpty)
-    LogFileReader.getBranchPath(lines, branchName) match {
-      case Some(path) =>  Some(ExistingBranchException(s"Branch $branchName already exists"))
-      case None => { LogFileWriter.updateBaseLog(baseLogPath, RepositoryInfo(branchName, location))
-        new File(location, SNAPSHOT_FOLDER_NAME).mkdir()
-        None
-      }
-    }
   }
 
   private def getSnapShotPath(version: String) = new File(CURRENT_RUNNING_PATH,SNAPSHOT_FOLDER_NAME + version).getAbsolutePath
