@@ -5,6 +5,6 @@ package Util
  */
 object Util {
 
-  val CURRENT_RUNNING_PATH: String = new java.io.File( "." ).getCanonicalPath
+  val CURRENT_RUNNING_PATH: String = System.getProperty("user.dir")
 
 }

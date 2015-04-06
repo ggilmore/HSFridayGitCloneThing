@@ -18,7 +18,6 @@ object LogFileReader {
 
   def getRepositoryEntries(lines: Seq[String]):Seq[Entry] = {
     def loop(entries:Seq[Entry], restOfLines:Seq[String]): Seq[Entry] = {
-      println(entries)
       if (restOfLines.isEmpty) entries
       else loop(entries :+ readRepositoryLine(restOfLines.head), restOfLines.tail)
     }

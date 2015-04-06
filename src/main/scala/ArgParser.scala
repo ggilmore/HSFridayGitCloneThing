@@ -6,7 +6,7 @@
 
 import java.io.{FileFilter, File}
 import java.util
-import Errors.{BranchNotFoundException, GenError, ExistingBranchException, FileCopyFailedException}
+import Errors._
 import Logger.LogFileReader._
 import Logger.LogFileWriter._
 import Logger.{RepositoryInfo, LogFileWriter, LogFileReader, Entry}
@@ -24,26 +24,36 @@ object ArgParser extends App {
   val USAGE =s"""USAGE 'snapshot' followed by the path of the folder that you want the snapshot to be placed."""
   val LOG_FILENAME = "myvcs_log.txt"
   val BASE_LOG = "base_log.txt"
+  val OK = "OK"
 
   args match {
     case Array("create", name, location) => createBranch(name, location) match {
       case Some(err) => println(err.message)
-      case None =>
+      case None => println(OK)
     }
     case Array("snapshot", branchName) => commit(branchName=branchName) match {
       case Some(err) => println(err.message)
-      case None =>
+      case None => println(OK)
     }
     case Array("snapshot", "-m", message, branchName) => commit(message, branchName) match {
       case Some(err) => println(err.message)
-      case None =>
+      case None => println(OK)
     }
-    case Array("checkout", version, branchName) => ???
+
+    case Array("checkout", "latest", branchName) => checkout(branchName = branchName) match {
+      case Some(err) => println(err)
+      case None => println(OK)
+    }
+
+    case Array("checkout", version, branchName) => checkout(version, branchName) match {
+      case Some(err) => println(err.message)
+      case None => println(OK)
+    }
     case _ => println(USAGE)
   }
 
 
-  def commit(message:String = "", branchName:String): Option[GenError] = {
+  private def commit(message:String = "", branchName:String): Option[GenError] = {
     LogFileReader.getBranchPath(Source.fromFile(new File(CURRENT_RUNNING_PATH, BASE_LOG)).getLines().toSeq.filter(line => line.nonEmpty), branchName) match {
       case Some(targetFolder) => {
         val logFile = new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)
@@ -61,11 +71,43 @@ object ArgParser extends App {
     }
   }
 
+  private def checkout(version:String = "", branchName:String): Option[GenError] = {
+    LogFileReader.getBranchPath(Source.fromFile(new File(CURRENT_RUNNING_PATH, BASE_LOG)).getLines().toSeq.filter(line => line.nonEmpty), branchName) match {
+      case Some(targetFolder) => {
+        val thisFolder = new File(CURRENT_RUNNING_PATH)
+        val branchFolder:Either[Unit, File] = {
+          val logFile = new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)
+          if (!logFile.exists) logFile.createNewFile
+          val logLines:Seq[String] = Source.fromFile(logFile).getLines.toSeq.filter(x=>x.nonEmpty)
+          if (version.isEmpty) {
+            getLatestRepositoryEntry(logLines) match {
+              case Some(entry) => Right(new File(targetFolder, SNAPSHOT_FOLDER_NAME+entry.version+File.separator))
+              case None => Left()
+            }
+          }
+          else {
+            val entries = getRepositoryEntries(logLines)
+            val set = entries.foldLeft(Set[String]()){case (set, entry) => set + entry.version}
+            if (set.contains(version)) Right(new File(targetFolder, SNAPSHOT_FOLDER_NAME+version+File.separator)) else Left()
+          }
+        }
+        branchFolder match {
+          case Right(folder) => {
+            FileUtils.copyDirectory(folder, thisFolder)
+            None
+          }
+
+          case Left(_) => Some(VersionNotFoundException(s"version $version not found in branch $branchName"))
+        }
+      }
+      case None => Some(BranchNotFoundException(s"branch $branchName does not exist"))
+    }
+  }
+
   private def copyAllFiles(rootPath: String, targetDirName: String, snapVersion:String): Option[GenError] = {
     try {
       val folder = new File(rootPath)
       val target = new File(targetDirName, SNAPSHOT_FOLDER_NAME + snapVersion + File.separator)
-      println(target.mkdir)
       val filter = new FileFilter {
         override def accept(pathname: File): Boolean = !pathname.getName().equalsIgnoreCase(BASE_LOG)
       }
@@ -74,17 +116,16 @@ object ArgParser extends App {
     }
     catch {
       case e: java.io.IOException => Some(FileCopyFailedException( s"""Unable to copy contents of $rootPath to ${rootPath + targetDirName}"""))
-
     }
 
   }
 
-  def createNewSnapShot(newVersion:String, message:String ="", rootPath:String, targetDirName:String, logPath:String):Option[GenError] = {
+  private def createNewSnapShot(newVersion:String, message:String ="", rootPath:String, targetDirName:String, logPath:String):Option[GenError] = {
     writeToRepositoryLog(logPath, Entry(newVersion, message))
     copyAllFiles(rootPath, targetDirName, newVersion)
   }
 
-  def createBranch(branchName: String, location: String): Option[GenError] = {
+ private def createBranch(branchName: String, location: String): Option[GenError] = {
     val baseLogPath =  CURRENT_RUNNING_PATH + "/" + BASE_LOG
     val baseLogFile = new File(baseLogPath)
     if (!baseLogFile.exists())
