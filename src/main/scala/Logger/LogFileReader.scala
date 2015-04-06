@@ -9,11 +9,11 @@ import java.nio.file.Path
 import java.nio.file.Path._
 object LogFileReader {
 
-  def readRepositoryLine(line: String) ={
+  def readRepositoryLine(line: String):Entry ={
     val trimmedLine = line.trim
-    val firstSpace = trimmedLine.indexOf(" ")
-    if (firstSpace == -1) Entry(trimmedLine, "")
-    else Entry(trimmedLine.substring(0, firstSpace), trimmedLine.substring(firstSpace + 1))
+    trimmedLine.split(LogFileWriter.DELIMETER) match {
+      case Array(version, message, date, parent) => Entry(version, message, date, parent)
+    }
   }
 
   def getRepositoryEntries(lines: Seq[String]):Seq[Entry] = {
@@ -31,6 +31,11 @@ object LogFileReader {
     }catch {
       case e: IndexOutOfBoundsException => None
     }
+  }
+
+  def getHeadEntry(headLines:Seq[String]):Entry = {
+    require(headLines.size == 1)
+    readRepositoryLine(headLines.head)
   }
 
   def getBranches(baseLogLines: Seq[String]):Seq[RepositoryInfo] = {

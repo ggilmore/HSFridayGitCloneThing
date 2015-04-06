@@ -7,16 +7,20 @@ import java.io.{FileWriter, PrintWriter}
  */
 object LogFileWriter {
 
-  def writeToRepositoryLog(logPath: String, logEntry: Entry): Unit ={
+  val DELIMETER = "#!"
+
+  def updateBaseLog(logPath:String, entryInfo:Entry) = {
     val writer = new PrintWriter(new FileWriter(logPath, true))
-    writer.println(s"""${logEntry.version} ${logEntry.message}""")
+    writer.println(
+      s"""${entryInfo.version}$DELIMETER${entryInfo.message}
+         |$DELIMETER${entryInfo.date}$DELIMETER${entryInfo.parent}""".stripMargin)
     writer.flush
     writer.close
   }
 
-  def updateBaseLog(logPath:String, branch:RepositoryInfo) = {
-    val writer = new PrintWriter(new FileWriter(logPath, true))
-    writer.println(s"""${branch.name} ${branch.location}""")
+  def writeHeadFile(filePath:String, version:String) = {
+    val writer = new PrintWriter(new FileWriter(filePath))
+    writer.println(s"""$version""")
     writer.flush
     writer.close
   }
