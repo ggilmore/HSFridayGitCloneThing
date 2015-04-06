@@ -1,6 +1,6 @@
 package Logger
 
-import java.io.{FileWriter, PrintWriter}
+import java.io.{FileWriter, PrintWriter, File}
 
 /**
  * Created by erisa on 03/04/15.
@@ -19,6 +19,8 @@ object LogFileWriter {
   }
 
   def writeHeadFile(filePath:String, version:String) = {
+    if (!new File(filePath).exists())
+      new File(filePath).createNewFile()
     val writer = new PrintWriter(new FileWriter(filePath))
     writer.println(s"""$version""")
     writer.flush

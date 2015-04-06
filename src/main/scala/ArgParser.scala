@@ -25,6 +25,7 @@ object ArgParser extends App {
   val LOG_FILENAME = "myvcs_log.txt"
   val BASE_LOG = "base_log.txt"
   val OK = "OK"
+  val HEAD_FILE = CURRENT_RUNNING_PATH + "/" + SNAPSHOT_FOLDER_NAME + "/" + "head.txt"
 
   args match {
     case Array("create", name, location) => createBranch(name, location) match {
@@ -59,11 +60,12 @@ object ArgParser extends App {
     val logLines = Source.fromFile(logFile).getLines.toSeq.filter(x=>x.nonEmpty)
     getLatestRepositoryEntry(logLines) match {
       case Some(entry) => {
-        createNewSnapShot((entry.version.toInt +1).toString, message,
-          CURRENT_RUNNING_PATH, new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME).getAbsolutePath)
+        val newVersion = (entry.version.toInt +1).toString
+        createNewSnapShot(newVersion, LogFileReader.getCurrentVersion(HEAD_FILE), message,
+          CURRENT_RUNNING_PATH, getSnapShotPath(newVersion),new File(CURRENT_RUNNING_PATH, SNAPSHOT_FOLDER_NAME+LOG_FILENAME).getAbsolutePath)
       }
-      case None => createNewSnapShot(0.toString, message,
-        CURRENT_RUNNING_PATH, targetFolder, new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME).getAbsolutePath)
+      case None => createNewSnapShot(0.toString, LogFileReader.getCurrentVersion(HEAD_FILE),message,
+        CURRENT_RUNNING_PATH, getSnapShotPath(0.toString), new File(CURRENT_RUNNING_PATH, SNAPSHOT_FOLDER_NAME+LOG_FILENAME).getAbsolutePath)
         None
     }
   }
@@ -125,6 +127,7 @@ object ArgParser extends App {
       case Some(err) => Some(err)
       case None => {
         updateBaseLog(logPath, Entry(newVersion, message, getCurrentDate, parentVersion))
+        LogFileWriter.writeHeadFile(HEAD_FILE, parentVersion)
         None
       }
     }
@@ -146,9 +149,7 @@ object ArgParser extends App {
     }
   }
 
-
-
-
+  private def getSnapShotPath(version: String) = new File(CURRENT_RUNNING_PATH,SNAPSHOT_FOLDER_NAME + version).getAbsolutePath
 }
 
 

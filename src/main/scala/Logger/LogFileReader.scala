@@ -5,8 +5,8 @@ package Logger
  */
 
 import java.io.File
-import java.nio.file.Path
-import java.nio.file.Path._
+import scala.io.Source
+
 object LogFileReader {
 
   def readRepositoryLine(line: String):Entry ={
@@ -35,7 +35,7 @@ object LogFileReader {
 
   def getHeadEntry(headLines:Seq[String]):Entry = {
     require(headLines.size == 1)
-    readRepositoryLine(headLines.head)
+    readRepositoryLine(headLines.head.trim)
   }
 
   def getBranches(baseLogLines: Seq[String]):Seq[RepositoryInfo] = {
@@ -55,6 +55,13 @@ object LogFileReader {
   def getBranchPath(baseLogLines:Seq[String], branchName:String):Option[String] = {
     val nameLocMap = getBranches(baseLogLines).foldLeft(Map[String, String]()){case (map, entry) => map + (entry.name -> entry.location)}
     nameLocMap.get(branchName)
+  }
+
+  def getCurrentVersion(headFilePath: String) = {
+    val headFile = new File(headFilePath)
+    if (headFile.exists())
+      LogFileReader.getHeadEntry(Source.fromFile(headFile).getLines().toSeq.filter(line => line.nonEmpty)).version
+    else "0"
   }
 
 
