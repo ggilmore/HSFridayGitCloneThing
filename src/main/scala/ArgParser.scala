@@ -5,17 +5,13 @@
 
 
 import java.io.{FileFilter, File}
-import java.util
 import Errors._
 import Logger.LogFileReader._
 import Logger.LogFileWriter._
-import Logger.{RepositoryInfo, LogFileWriter, LogFileReader, Entry}
+import Logger.{LogFileWriter, LogFileReader, Entry}
 
 import Util.Util._
 import org.apache.commons.io.FileUtils
-
-import scala.io.Source
-
 
 object ArgParser extends App {
 
@@ -29,21 +25,21 @@ object ArgParser extends App {
   lazy val BASE_LOG_FILE_PATH = getBaseLogFilePath
 
   args match {
-    case Array("snapshot", branchName) => commit(branchName=branchName) match {
+    case Array("snapshot") => commit() match {
       case Some(err) => println(err.message)
       case None => println(OK)
     }
-    case Array("snapshot", "-m", message, branchName) => commit(message, branchName) match {
+    case Array("snapshot", "-m", message) => commit(message) match {
       case Some(err) => println(err.message)
       case None => println(OK)
     }
 
-    case Array("checkout", "latest", branchName) => checkout(branchName = branchName) match {
+    case Array("checkout", "latest") => checkout() match {
       case Some(err) => println(err)
       case None => println(OK)
     }
 
-    case Array("checkout", version, branchName) => checkout(version, branchName) match {
+    case Array("checkout", version) => checkout(Some(version)) match {
       case Some(err) => println(err.message)
       case None => println(OK)
     }
@@ -51,8 +47,8 @@ object ArgParser extends App {
   }
 
 
-  private def commit(message:String = "", branchName:String): Option[GenError] = {
-    val logLines = Source.fromFile(new File(BASE_LOG_FILE_PATH)).getLines.toSeq.filter(x=>x.nonEmpty)
+  private def commit(message:String = ""): Option[GenError] = {
+    val logLines = LogFileReader.getLines(BASE_LOG_FILE_PATH)
     getLatestRepositoryEntry(logLines) match {
       case Some(entry) => {
         val newVersion = (entry.version.toInt +1).toString
@@ -67,38 +63,16 @@ object ArgParser extends App {
 
 
 
-  private def checkout(version:String = "", branchName:String): Option[GenError] = {
-    LogFileReader.getBranchPath(Source.fromFile(new File(CURRENT_RUNNING_PATH, BASE_LOG)).getLines().toSeq.filter(line => line.nonEmpty), branchName) match {
-      case Some(targetFolder) => {
-        val thisFolder = new File(CURRENT_RUNNING_PATH)
-        val branchFolder:Either[Unit, File] = {
-          val logFile = new File(targetFolder, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)
-          if (!logFile.exists) logFile.createNewFile
-          val logLines:Seq[String] = Source.fromFile(logFile).getLines.toSeq.filter(x=>x.nonEmpty)
-          if (version.isEmpty) {
-            getLatestRepositoryEntry(logLines) match {
-              case Some(entry) => Right(new File(targetFolder, SNAPSHOT_FOLDER_NAME+entry.version+File.separator))
-              case None => Left()
-            }
-          }
-          else {
-            val entries = getRepositoryEntries(logLines)
-            val set = entries.foldLeft(Set[String]()){case (set, entry) => set + entry.version}
-            if (set.contains(version)) Right(new File(targetFolder, SNAPSHOT_FOLDER_NAME+version+File.separator)) else Left()
-          }
-        }
-        branchFolder match {
-          case Right(folder) => {
-            FileUtils.copyDirectory(folder, thisFolder)
-            None
-          }
-
-          case Left(_) => Some(VersionNotFoundException(s"version $version not found in branch $branchName"))
-        }
-      }
-      case None => Some(BranchNotFoundException(s"branch $branchName does not exist"))
-    }
+  private def checkout(version:Option[String] = None): Option[GenError] = {
+    val versionToCheckout = version.getOrElse(LogFileReader.getLatestRepositoryEntry(LogFileReader.getLines(BASE_LOG_FILE_PATH)).get.version)
+    val versionDir = new File (getSnapShotPath (versionToCheckout) )
+    if (versionDir.isDirectory) {
+    FileUtils.copyDirectory (versionDir, new File (CURRENT_RUNNING_PATH))
+      LogFileWriter.writeHeadFile(HEAD_FILE, versionToCheckout)
+      None
+    } else Some(VersionNotFoundException(s"version $version not found"))
   }
+
 
   private def copyAllFiles(rootPath: String, targetDirName: String, snapVersion:String): Option[GenError] = {
     try {
@@ -122,7 +96,7 @@ object ArgParser extends App {
       case Some(err) => Some(err)
       case None => {
         updateBaseLog(logPath, Entry(newVersion, message, getCurrentDate, parentVersion))
-        LogFileWriter.writeHeadFile(HEAD_FILE, parentVersion)
+        LogFileWriter.writeHeadFile(HEAD_FILE, newVersion)
         None
       }
     }

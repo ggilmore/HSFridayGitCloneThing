@@ -5,10 +5,11 @@ package Logger
  */
 
 import java.io.File
-import java.util
 import scala.io.Source
 
 object LogFileReader {
+
+  def getLines (path: String) = Source.fromFile(new File(path)).getLines.toSeq.filter(x=>x.nonEmpty)
 
   def readRepositoryLine(line: String):Entry ={
     val trimmedLine = line.trim
