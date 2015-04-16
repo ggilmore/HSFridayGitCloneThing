@@ -43,9 +43,19 @@ object ArgParser extends App {
       case Some(err) => println(err.message)
       case None => println(OK)
     }
+
+    case Array("log") => println(showLog)
+
     case _ => println(USAGE)
   }
 
+  private def showLog:String = {
+    val builder = new StringBuilder
+    LogFileReader.getRepositoryEntries(LogFileReader.getLines(BASE_LOG_FILE_PATH)).foreach{case entry => {
+      builder.append(s"""${entry.date} Version: ${entry.version} ParentVersion: ${entry.parent} Message: ${entry.message}""" + "\n")
+    }}
+    builder.toString
+  }
 
   private def commit(message:String = ""): Option[GenError] = {
     val logLines = LogFileReader.getLines(BASE_LOG_FILE_PATH)
