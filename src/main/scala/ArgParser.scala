@@ -26,6 +26,7 @@ object ArgParser extends App {
   val BASE_LOG = "base_log.txt"
   val OK = "OK"
   val HEAD_FILE = CURRENT_RUNNING_PATH + "/" + SNAPSHOT_FOLDER_NAME + "/" + "head.txt"
+  lazy val BASE_LOG_FILE_PATH = getBaseLogFilePath
 
   args match {
     case Array("snapshot", branchName) => commit(branchName=branchName) match {
@@ -51,9 +52,7 @@ object ArgParser extends App {
 
 
   private def commit(message:String = "", branchName:String): Option[GenError] = {
-    val logFile = new File(CURRENT_RUNNING_PATH, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)
-    if (!logFile.exists) logFile.createNewFile
-    val logLines = Source.fromFile(logFile).getLines.toSeq.filter(x=>x.nonEmpty)
+    val logLines = Source.fromFile(new File(BASE_LOG_FILE_PATH)).getLines.toSeq.filter(x=>x.nonEmpty)
     getLatestRepositoryEntry(logLines) match {
       case Some(entry) => {
         val newVersion = (entry.version.toInt +1).toString
@@ -131,6 +130,15 @@ object ArgParser extends App {
   }
 
   private def getSnapShotPath(version: String) = new File(CURRENT_RUNNING_PATH,SNAPSHOT_FOLDER_NAME + version).getAbsolutePath
+
+  private def getBaseLogFilePath = {
+    val logFile = new File(CURRENT_RUNNING_PATH, SNAPSHOT_FOLDER_NAME+LOG_FILENAME)
+    if (!logFile.exists) {
+      logFile.getParentFile.mkdirs()
+      logFile.createNewFile
+    }
+    logFile.getAbsolutePath
+  }
 }
 
 
