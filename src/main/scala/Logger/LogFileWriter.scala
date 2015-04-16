@@ -12,8 +12,7 @@ object LogFileWriter {
   def updateBaseLog(logPath:String, entryInfo:Entry) = {
     val writer = new PrintWriter(new FileWriter(logPath, true))
     writer.println(
-      s"""${entryInfo.version}$DELIMETER${entryInfo.message}
-         |$DELIMETER${entryInfo.date}$DELIMETER${entryInfo.parent}""".stripMargin)
+      s"""${entryInfo.version}$DELIMETER${entryInfo.message}$DELIMETER${entryInfo.date}$DELIMETER${entryInfo.parent}""")
     writer.flush
     writer.close
   }

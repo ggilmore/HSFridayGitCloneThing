@@ -5,14 +5,15 @@ package Logger
  */
 
 import java.io.File
+import java.util
 import scala.io.Source
 
 object LogFileReader {
 
   def readRepositoryLine(line: String):Entry ={
     val trimmedLine = line.trim
-    trimmedLine.split(LogFileWriter.DELIMETER) match {
-      case Array(version, message, date, parent) => Entry(version, message, date, parent)
+    trimmedLine.split(LogFileWriter.DELIMETER).toList match {
+      case List(version, message, date, parent) => Entry(version, message, date, parent)
     }
   }
 
@@ -31,11 +32,6 @@ object LogFileReader {
     }catch {
       case e: IndexOutOfBoundsException => None
     }
-  }
-
-  def getHeadEntry(headLines:Seq[String]):Entry = {
-    require(headLines.size == 1)
-    readRepositoryLine(headLines.head.trim)
   }
 
   def getBranches(baseLogLines: Seq[String]):Seq[RepositoryInfo] = {
@@ -59,8 +55,11 @@ object LogFileReader {
 
   def getCurrentVersion(headFilePath: String) = {
     val headFile = new File(headFilePath)
-    if (headFile.exists())
-      LogFileReader.getHeadEntry(Source.fromFile(headFile).getLines().toSeq.filter(line => line.nonEmpty)).version
+    if (headFile.exists()) {
+      val headLines = Source.fromFile(headFile).getLines().toSeq.filter(line => line.nonEmpty)
+      require(headLines.size == 1)
+      headLines.head.trim
+    }
     else "0"
   }
 
