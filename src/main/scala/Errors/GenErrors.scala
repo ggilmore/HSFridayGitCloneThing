@@ -16,3 +16,5 @@ case class ExistingBranchException (message: String) extends  GenError
 case class BranchNotFoundException (message: String) extends  GenError
 
 case class VersionNotFoundException(message:String) extends GenError
+
+case class FolderNotFoundException(message:String) extends GenError

@@ -8,7 +8,7 @@ import java.io.{FileFilter, File}
 import Errors._
 import Logger.LogFileReader._
 import Logger.LogFileWriter._
-import Logger.{LogFileWriter, LogFileReader, Entry}
+import Logger.{FileDiffer, LogFileWriter, LogFileReader, Entry}
 
 
 import Util.Util._
@@ -47,7 +47,27 @@ object ArgParser extends App {
 
     case Array("log") => println(showLog)
 
+//    case Array("diff", original) => println(diff(originalVersion = original))
+
+    case Array("diff", original, revision) => println(diff(original, revision))
+
+
     case _ => println(USAGE)
+  }
+
+  private def diff(originalVersion:String, revisedVersion:String = "") :String = {
+    val revisedVersionFile = new File(CURRENT_RUNNING_PATH, SNAPSHOT_FOLDER_NAME + revisedVersion + File.separator)
+    if (!revisedVersionFile.exists) s"Revision: $revisedVersion not found at ${revisedVersionFile.getAbsolutePath}"
+    else if (revisedVersion.isEmpty){ //is current directory
+      FileDiffer.diffTwoDirectories(revisedVersionFile.getAbsolutePath, CURRENT_RUNNING_PATH)
+    }
+    else{
+      val originalVersionFile = new File(CURRENT_RUNNING_PATH, SNAPSHOT_FOLDER_NAME + originalVersion + File.separator)
+      if (!originalVersionFile.exists) s"Revision: $originalVersion not found at ${originalVersionFile.getAbsolutePath}"
+      else {
+        FileDiffer.diffTwoDirectories(originalVersionFile.getAbsolutePath, revisedVersionFile.getAbsolutePath)
+      }
+    }
   }
 
   private def showLog:String = {
